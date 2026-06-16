@@ -1,0 +1,61 @@
+{
+  "githubUser": "franklinblanco",
+  "projects": [
+    {
+      "id": "vanity",
+      "name": "Vanity",
+      "description": "",
+      "repo": "franklinblanco/vanity",
+      "branch": "develop",
+      "localPath": "/Users/franklinblanco/Developer/vanity",
+      "railwayUrl": "",
+      "healthcheck": {
+        "url": "",
+        "method": "GET",
+        "expectStatus": 200,
+        "timeoutMs": 8000
+      },
+      "docs": [
+        { "label": "README", "type": "github", "path": "README.md" },
+        { "label": "Docs", "type": "github", "path": "docs" }
+      ]
+    },
+    {
+      "id": "xxindex",
+      "name": "xxindex",
+      "description": "",
+      "repo": "franklinblanco/xxindex",
+      "branch": "master",
+      "localPath": "/Users/franklinblanco/Developer/xxindex",
+      "railwayUrl": "",
+      "healthcheck": {
+        "url": "",
+        "method": "GET",
+        "expectStatus": 200,
+        "timeoutMs": 8000
+      },
+      "docs": [
+        { "label": "README", "type": "github", "path": "README.md" }
+      ]
+    },
+    {
+      "id": "tu-tasa",
+      "name": "Tu Tasa",
+      "description": "",
+      "repo": "franklinblanco/Tu-Tasa-App",
+      "branch": "master",
+      "localPath": "/Users/franklinblanco/Developer/Tu-Tasa-App",
+      "railwayUrl": "",
+      "healthcheck": {
+        "url": "",
+        "method": "GET",
+        "expectStatus": 200,
+        "timeoutMs": 8000
+      },
+      "docs": [
+        { "label": "README", "type": "github", "path": "README.md" },
+        { "label": "Design", "type": "github", "path": "DESIGN.md" }
+      ]
+    }
+  ]
+}

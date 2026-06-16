@@ -1,0 +1,8 @@
+node_modules/
+web/dist/
+.env
+.claude/
+.DS_Store
+mac/.build/
+mac/.swiftpm/
+*.log

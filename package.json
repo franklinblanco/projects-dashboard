@@ -1,0 +1,24 @@
+{
+  "name": "projects-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Personal dashboard for development projects: healthchecks, GitHub, Railway, docs.",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev": "concurrently -n server,web -c blue,green \"npm:dev:server\" \"npm:dev:web\"",
+    "dev:server": "node --watch server/index.js",
+    "dev:web": "npm --prefix web run dev",
+    "build": "npm --prefix web install && npm --prefix web run build",
+    "start": "node server/index.js",
+    "postinstall": "npm --prefix web install"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
