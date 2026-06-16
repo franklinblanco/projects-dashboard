@@ -28,6 +28,8 @@ export const api = {
   updateProject: (id, body) =>
     req(`/projects/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   deleteProject: (id) => req(`/projects/${id}`, { method: "DELETE" }),
+  importProjects: (projects) =>
+    req("/projects/import", { method: "POST", body: JSON.stringify({ projects }) }),
   health: (id) => req(`/health/${id}`),
   doc: (id, path) => req(`/doc/${id}${path ? `?path=${encodeURIComponent(path)}` : ""}`),
   localPath: (id) => req(`/local-path/${id}`),

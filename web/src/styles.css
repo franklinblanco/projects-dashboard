@@ -448,6 +448,11 @@ body {
   border: 1px solid rgba(248, 113, 113, 0.4);
   color: var(--down);
 }
+.banner.notice {
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.4);
+  color: var(--up);
+}
 
 /* ---- Modal ---- */
 .modal-backdrop {
@@ -569,6 +574,11 @@ body {
   width: 64px;
   height: 64px;
   border-radius: 16px;
+}
+.empty-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
 }
 
 /* ---- Footer ---- */

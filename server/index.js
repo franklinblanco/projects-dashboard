@@ -145,6 +145,38 @@ api.delete("/projects/:id", async (req, res) => {
   }
 });
 
+// Bulk import. Accepts an array of projects or a { projects: [...] } config
+// object. Upserts by id (adds new, updates existing).
+api.post("/projects/import", async (req, res) => {
+  try {
+    const incoming = Array.isArray(req.body) ? req.body : req.body?.projects;
+    if (!Array.isArray(incoming)) {
+      return res.status(400).json({ error: "expected an array of projects or { projects: [...] }" });
+    }
+    const config = await loadConfig();
+    const byId = new Map(config.projects.map((p) => [p.id, p]));
+    let added = 0;
+    let updated = 0;
+    const errors = [];
+    for (const raw of incoming) {
+      try {
+        const existing = raw.id ? byId.get(raw.id) : undefined;
+        const project = normalizeProject(raw, existing || {});
+        if (byId.has(project.id)) updated++;
+        else added++;
+        byId.set(project.id, project);
+      } catch (e) {
+        errors.push(`${raw?.name || raw?.id || "?"}: ${String(e.message || e)}`);
+      }
+    }
+    config.projects = Array.from(byId.values());
+    await saveConfig(config);
+    res.json({ ok: true, added, updated, total: config.projects.length, errors });
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e) });
+  }
+});
+
 api.get("/health/:id", async (req, res) => {
   try {
     const config = await loadConfig();

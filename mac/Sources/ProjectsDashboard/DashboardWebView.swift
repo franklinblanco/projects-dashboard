@@ -75,6 +75,42 @@ struct DashboardWebView: NSViewRepresentable {
             decisionHandler(.allow)
         }
 
+        // A failed load otherwise leaves a blank white view — show a helpful page.
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            showLoadError(in: webView, error: error)
+        }
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            showLoadError(in: webView, error: error)
+        }
+
+        private func showLoadError(in webView: WKWebView, error: Error) {
+            // Ignore cancellations (e.g. our own decidePolicyFor .cancel).
+            let nsError = error as NSError
+            if nsError.code == NSURLErrorCancelled { return }
+            let safeURL = lastURL
+                .replacingOccurrences(of: "&", with: "&amp;")
+                .replacingOccurrences(of: "<", with: "&lt;")
+            let message = nsError.localizedDescription
+                .replacingOccurrences(of: "<", with: "&lt;")
+            let html = """
+            <html><head><meta name="color-scheme" content="dark"></head>
+            <body style="margin:0;height:100vh;display:flex;align-items:center;justify-content:center;
+              font-family:-apple-system,system-ui,sans-serif;background:#0b0d12;color:#e7eaf0">
+              <div style="text-align:center;max-width:420px;padding:24px">
+                <div style="font-size:40px;margin-bottom:8px">📡</div>
+                <h2 style="margin:0 0 8px">Can't reach your dashboard</h2>
+                <p style="color:#8b93a7;line-height:1.5">
+                  Couldn't load <code style="color:#6d8cff">\(safeURL)</code>.<br>
+                  Click the <b>⚙ gear</b> button (top-right) to set your dashboard URL —
+                  e.g. your deployed site, or <code>http://localhost:8080</code> if running locally.
+                </p>
+                <p style="color:#5b6273;font-size:12px">\(message)</p>
+              </div>
+            </body></html>
+            """
+            webView.loadHTMLString(html, baseURL: nil)
+        }
+
         func userContentController(
             _ userContentController: WKUserContentController,
             didReceive message: WKScriptMessage
