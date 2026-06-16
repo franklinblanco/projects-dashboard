@@ -2,6 +2,7 @@ node_modules/
 web/dist/
 .env
 .claude/
+data/
 .DS_Store
 mac/.build/
 mac/.swiftpm/

@@ -2,7 +2,7 @@ import SwiftUI
 
 @main
 struct ProjectsDashboardApp: App {
-    @AppStorage("dashboardURL") private var dashboardURL: String = "https://dashboard.franklinblanco.dev"
+    @AppStorage("dashboardURL") private var dashboardURL: String = "http://localhost:8080"
     @State private var showSettings = false
 
     var body: some Scene {
@@ -40,7 +40,7 @@ struct SettingsView: View {
             Text("Point the app at your deployed dashboard, or http://localhost:8080 for local dev.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            TextField("https://dashboard.franklinblanco.dev", text: $draft)
+            TextField("http://localhost:8080", text: $draft)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 380)
 

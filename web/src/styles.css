@@ -548,6 +548,29 @@ body {
   padding: 6px 10px;
 }
 
+/* ---- Empty state ---- */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  padding: 80px 20px;
+}
+.empty-state h2 {
+  margin: 8px 0 0;
+  font-size: 20px;
+}
+.empty-state p {
+  margin: 0 0 8px;
+  max-width: 360px;
+}
+.logo-icon.big {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+}
+
 /* ---- Footer ---- */
 .footer {
   margin-top: 48px;

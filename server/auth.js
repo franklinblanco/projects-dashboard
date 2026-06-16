@@ -162,7 +162,8 @@ export function registerAuthRoutes(router) {
       if (!userRes.ok) return res.redirect("/?auth_error=user");
       const user = await userRes.json();
       const login = String(user.login || "").toLowerCase();
-      if (!env.allowedUsers.includes(login)) {
+      // Empty allow-list = open instance (any GitHub user). Otherwise restrict.
+      if (env.allowedUsers.length && !env.allowedUsers.includes(login)) {
         return res.redirect("/?auth_error=forbidden");
       }
       const token = sign({ u: user.login, exp: Date.now() + env.sessionTtlMs });

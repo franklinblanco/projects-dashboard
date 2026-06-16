@@ -221,8 +221,13 @@ app.listen(env.port, () => {
   console.log(`projects-dashboard listening on :${env.port}`);
   if (!authEnabled) {
     console.warn("⚠️  AUTH DISABLED — set GITHUB_OAUTH_CLIENT_ID/SECRET to require login.");
-  } else if (!env.sessionSecret) {
-    console.warn("⚠️  SESSION_SECRET not set — using a derived dev secret. Set it in production.");
+  } else {
+    if (!env.sessionSecret) {
+      console.warn("⚠️  SESSION_SECRET not set — using a derived dev secret. Set it in production.");
+    }
+    if (!env.allowedUsers.length) {
+      console.warn("⚠️  GITHUB_ALLOWED_USERS empty — ANY GitHub user can sign in. Set it to lock down.");
+    }
   }
   if (!env.githubToken) {
     console.warn("ℹ️  No GITHUB_TOKEN — GitHub API is unauthenticated (low rate limit).");

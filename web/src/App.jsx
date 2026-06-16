@@ -101,17 +101,30 @@ export default function App() {
 
       {error && <div className="banner error">{error}</div>}
 
-      <main className="grid">
-        {data?.projects.map((p) => (
-          <ProjectCard
-            key={p.id}
-            project={p}
-            health={health[p.id]}
-            onOpenDoc={(d) => setDoc({ project: p, doc: d })}
-            onEdit={() => setEditing({ project: p })}
-          />
-        ))}
-      </main>
+      {data && data.projects.length === 0 ? (
+        <div className="empty-state">
+          <img className="logo-icon big" src="/favicon.svg" alt="" />
+          <h2>No projects yet</h2>
+          <p className="muted">
+            Add your development projects to see healthchecks, GitHub info, and docs.
+          </p>
+          <button className="btn primary inline" onClick={() => setEditing({ project: null })}>
+            + Add your first project
+          </button>
+        </div>
+      ) : (
+        <main className="grid">
+          {data?.projects.map((p) => (
+            <ProjectCard
+              key={p.id}
+              project={p}
+              health={health[p.id]}
+              onOpenDoc={(d) => setDoc({ project: p, doc: d })}
+              onEdit={() => setEditing({ project: p })}
+            />
+          ))}
+        </main>
+      )}
 
       <footer className="footer">
         Dashboard made by{" "}

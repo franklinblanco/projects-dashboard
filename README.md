@@ -1,184 +1,114 @@
 # Projects Dashboard
 
-A personal dashboard for your development projects: live healthchecks, GitHub
-metadata, Railway + live-deployment links, rendered READMEs — plus a native
-macOS app that wraps the site and can open a Terminal at each project's path.
+A self-hosted dashboard for your development projects: live healthchecks, GitHub
+metadata, deployment links, and rendered READMEs — plus an optional native macOS
+app that can open a terminal (or Claude Code) at each project's folder.
 
-Live at **https://dashboard.franklinblanco.dev** (deployed on Railway).
+Free and open source (MIT). Run your own instance in a couple of minutes.
+
+> Add projects from the UI — no config files to hand-edit. Everything is stored
+> in a single `projects.json` you control.
 
 ```
 projects-dashboard/
-├── config/projects.json   # the project list — edit this to add/change projects
-├── server/                # Node + Express: API, GitHub sync, healthchecks, auth
-├── web/                   # React + Vite dashboard (built into web/dist)
-├── mac/                   # SwiftUI macOS app (WKWebView + native bridge)
-├── railway.json           # Railway build/deploy config
+├── config/projects.example.json   # template seeded on first run
+├── data/projects.json             # your live data (gitignored; mount a volume in prod)
+├── server/                        # Node + Express: API, GitHub sync, healthchecks, auth
+├── web/                           # React + Vite dashboard (built into web/dist)
+├── mac/                           # optional SwiftUI companion app
+├── railway.json                   # deploy config
 └── .env.example
 ```
 
-## How it works
+## Features
 
-- The **Node server** serves the built React app and exposes `/api/*`.
-- **Healthchecks** run server-side (`server/health.js`) so they bypass browser
-  CORS and can reach Railway/internal endpoints directly. Re-run every 60s.
-- **GitHub data** (description, last push, READMEs, doc folders) is pulled
-  through the GitHub API and cached for 5 minutes (`server/github.js`).
-- **README excerpt**: the server distills each repo's README into a short plain-
-  text snippet (strips badges/HTML/markdown). Clicking it opens the full rendered
-  README in a modal.
-- **Auth** is GitHub OAuth, allow-listed to specific logins, with a signed
-  httpOnly session cookie (`server/auth.js`, HMAC via Node `crypto` — no DB).
-- **Open Terminal** / **Open with Claude Code** only appear in the macOS app:
-  the web app calls the `openTerminal` / `openClaude` WebKit message handlers, and
-  the Swift side opens a **new window** in your default terminal (resolved via the
-  `public.shell-script` handler, e.g. iTerm) using AppleScript, `cd`-ing to the
-  project — and running `claude` for the Claude action. Local paths are never sent
-  to the browser; the app fetches them from `/api/local-path/:id` on demand.
-- **External links** (GitHub, Railway, the **Live** button) open in the default
-  browser when clicked inside the macOS app.
+- **Healthchecks** — server-side pings (bypass browser CORS) with status + latency, re-run every 60s.
+- **GitHub sync** — description, last push, and a distilled README excerpt per project (cached 5 min).
+- **Links** — GitHub repo, deployment console, and live URL per card.
+- **Docs** — render any markdown file from the repo (README, design docs…) in a modal.
+- **Add / edit projects in the UI** — name, repo, branch, URLs, healthcheck, docs.
+- **GitHub OAuth** — lock the dashboard to your GitHub account (or an allow-list).
+- **macOS companion (optional)** — open a terminal or Claude Code at a project's local path.
 
-## Local development
+## Run it locally
 
 ```bash
-cp .env.example .env        # fill in OAuth + SESSION_SECRET (or leave OAuth blank to disable auth)
-npm install                 # installs server + web deps
-npm run dev                 # server on :8080, Vite on :5173 (proxies /api)
+git clone https://github.com/franklinblanco/projects-dashboard.git
+cd projects-dashboard
+cp .env.example .env        # optional: add GitHub OAuth + a GITHUB_TOKEN
+npm install
+npm run dev                 # API on :8080, Vite on :5173 (proxies /api)
 ```
 
-Open http://localhost:5173. For a production-like run:
+Open http://localhost:5173 and click **+ Add project**. With no OAuth configured,
+auth is disabled (fine for local use). For a production-like single-process run:
 
 ```bash
 npm run build && npm start  # serves the built app + API on :8080
 ```
 
-## Deploy
+## Deploy (Railway)
 
-Push to `master` → Railway auto-deploys (`railway.json` defines build/start).
+1. Create a service from your fork (`railway.json` defines build/start).
+2. **Add a Volume** and mount it at `/app/data`, then set `DATA_DIR=/app/data`.
+   This is required so projects you add/edit survive redeploys.
+3. Set service variables:
+   | Variable | Purpose |
+   | --- | --- |
+   | `SESSION_SECRET` | `openssl rand -hex 32` |
+   | `GITHUB_OAUTH_CLIENT_ID` / `_SECRET` | from your GitHub OAuth app |
+   | `GITHUB_ALLOWED_USERS` | your GitHub login (lock it down!) |
+   | `GITHUB_TOKEN` | read-only PAT (reads your repos' metadata/READMEs) |
+   | `NODE_ENV=production` | marks the session cookie `Secure` |
+4. Add a custom domain in Railway, point a CNAME at it, and set your OAuth app's
+   callback to `https://YOUR-DOMAIN/api/auth/github/callback`.
 
-1. **Service**: connect the GitHub repo in Railway (or `railway init`).
-2. **Variables** (Settings → Variables):
-   - `SESSION_SECRET` — `openssl rand -hex 32`
-   - `GITHUB_OAUTH_CLIENT_ID` / `GITHUB_OAUTH_CLIENT_SECRET` — from your OAuth app
-   - `GITHUB_ALLOWED_USERS` — `franklinblanco`
-   - `GITHUB_TOKEN` — read-only PAT (reads private repos' metadata/READMEs)
-   - `NODE_ENV=production` — marks the session cookie `Secure`
-   - (`PORT` is injected by Railway — don't set it.)
-3. **Custom domain**: Settings → Networking → add `dashboard.franklinblanco.dev`;
-   Railway returns a CNAME target.
-4. **DNS (Porkbun)**: add a CNAME record `dashboard` → the Railway target. TLS is
-   provisioned automatically; the server sets `trust proxy` so the `Secure` cookie
-   and HTTPS callback detection work behind Railway's proxy.
+Any Node host works the same way — just point `DATA_DIR` at persistent storage.
 
-## macOS app
+## Authentication (GitHub OAuth)
+
+Register an OAuth app at https://github.com/settings/developers with callback
+`https://YOUR-DOMAIN/api/auth/github/callback`, then set `GITHUB_OAUTH_CLIENT_ID`,
+`GITHUB_OAUTH_CLIENT_SECRET`, and `GITHUB_ALLOWED_USERS` (your login). The flow
+uses the `read:user` scope and a CSRF `state`. **If `GITHUB_ALLOWED_USERS` is
+empty, any GitHub user can sign in** — only do that intentionally. When OAuth
+isn't configured at all, auth is disabled (local dev convenience).
+
+## macOS companion app (optional)
 
 ```bash
 cd mac
 ./build-app.sh                       # → dist/Projects Dashboard.app (signed, double-clickable)
-open "dist/Projects Dashboard.app"   # or drag it to /Applications
-# (for quick iteration: `swift run`)
+open "dist/Projects Dashboard.app"   # then set your dashboard URL via the gear icon
 ```
 
-It loads `https://dashboard.franklinblanco.dev` by default; the gear icon lets
-you repoint it (e.g. `http://localhost:8080`) and the choice persists. The
-session cookie persists across launches, so you sign in once. The **Open
-Terminal** and **Open with Claude Code** buttons show only here, only for
-projects with a `localPath`, and launch in your default terminal app (set it via
-Finder → a `.command` file → Open With → Always Open With).
+It wraps your dashboard in a window and adds **Open Terminal** / **Open with
+Claude Code** buttons (only for projects that have a local path) that open a new
+window in your default terminal. External links open in your default browser.
+Local paths are never sent to the browser — the app fetches them on demand.
 
-## Authentication (GitHub OAuth)
+## Configuration reference
 
-If OAuth env vars are unset, auth is **disabled** (local-dev convenience). To
-enable it: register an OAuth app at https://github.com/settings/developers with
-callback `…/api/auth/github/callback`, then set `GITHUB_OAUTH_CLIENT_ID`,
-`GITHUB_OAUTH_CLIENT_SECRET`, and `GITHUB_ALLOWED_USERS`. The flow uses the
-`read:user` scope, verifies a CSRF `state`, and rejects logins not in the
-allow-list (`/?auth_error=forbidden`). The OAuth app's callback URL must be
-`https://dashboard.franklinblanco.dev/api/auth/github/callback` (use
-`http://localhost:8080/...` for local dev). Optionally, Cloudflare Access can
-front the domain instead.
+A project (stored in `data/projects.json`, editable from the UI):
+
+| field | meaning |
+| --- | --- |
+| `name`, `repo` | display name and `owner/name` on GitHub (required) |
+| `branch` | branch READMEs/docs are read from |
+| `localPath` | absolute path for the macOS terminal shortcut (never exposed to the browser) |
+| `railwayUrl`, `deployUrl` | deployment console link and live URL |
+| `healthcheck` | `{ url, method, expectStatus, timeoutMs }` — blank `url` = no check |
+| `docs` | `[{ label, path }]` markdown files to render |
+
+## Notes for self-hosters
+
+- Healthchecks run from your server, so target URLs must be publicly reachable.
+  If you expose this instance to others, validate/block private IP ranges to
+  avoid SSRF before allowing untrusted users to add healthchecks.
+- A `GITHUB_TOKEN` is needed to read **private** repos' metadata/READMEs.
+- `vite` is a regular dependency (not dev) because the frontend is built at
+  deploy time, where `NODE_ENV=production` would otherwise skip dev deps.
 
 ---
 
-# Maintenance guide (for Claude)
-
-This section is the playbook for working on this repo. Read it before editing.
-
-## Adding a project
-
-Append an entry to the `projects` array in **`config/projects.json`**. No code
-changes are needed — the UI and API are driven entirely by this file, read fresh
-on every request (no restart required).
-
-```jsonc
-{
-  "id": "my-project",                       // stable unique slug (used in API paths)
-  "name": "My Project",                     // display name on the card
-  "description": "",                        // optional; falls back to the GitHub description
-  "repo": "franklinblanco/my-project",      // owner/name on GitHub
-  "branch": "master",                       // branch READMEs/docs/excerpt are read from
-  "localPath": "/Users/franklinblanco/Developer/my-project", // for the macOS terminal shortcut; NEVER sent to the browser
-  "railwayUrl": "https://railway.com/project/<id>",          // opens the Railway console (the "Railway" button)
-  "deployUrl": "https://my-project.example.com",             // live deployment (the card's "Live" button); omit to hide the button
-  "healthcheck": {
-    "url": "https://my-project.example.com/health",          // server-side ping; leave "" for "no healthcheck"
-    "method": "GET",
-    "expectStatus": 200,                    // status that counts as "up"; otherwise "degraded"
-    "timeoutMs": 8000
-  },
-  "docs": [
-    { "label": "README", "type": "github", "path": "README.md" }
-    // add { "label": "Design", "type": "github", "path": "DESIGN.md" } etc.
-  ]
-}
-```
-
-How to discover each value (these commands are how the seeded projects were filled in):
-
-- **`repo` / `branch`**: `git -C <localPath> remote get-url origin` and
-  `git -C <localPath> branch --show-current`.
-- **`healthcheck.url`**: grep the repo for a health route
-  (`grep -rniE '"/(health|healthz|status|ping)"' <localPath>`), then **verify it
-  is actually live before committing**: `curl -s -o /dev/null -w "%{http_code}" <url>`
-  must return `expectStatus`. If there's no health route, point at the deployment
-  root (`/`) if it returns 200. Find the live host by grepping the repo for its
-  domain.
-- **`deployUrl`**: the public app URL.
-- **`railwayUrl`**: ask the user (these are Railway console links, not derivable).
-
-## Modifying or removing a project
-
-Just edit/delete its object in `config/projects.json`. The `docs` array controls
-which doc chips appear; `healthcheck.url=""` renders the "No healthcheck" state.
-
-## Conventions & gotchas (don't relearn these the hard way)
-
-- **Build tools live in `dependencies`, not `devDependencies`** (in
-  `web/package.json`). Railway builds with `NODE_ENV=production`, which makes
-  `npm install` skip dev deps — so `vite` must be a regular dependency or the
-  build fails with `vite: not found`.
-- **Auth is OAuth-only.** There is no password login. When OAuth env vars are
-  unset, `authEnabled` is false and the API is open (intended for local dev).
-- **Local paths are private.** `publicProject()` in `server/index.js` strips
-  `localPath` from `/api/projects`. Only `/api/local-path/:id` returns it, used
-  by the macOS bridge. Never expose `localPath` in the projects payload.
-- **Healthchecks are server-side** and run from wherever the dashboard is
-  deployed; the target endpoints must be publicly reachable from Railway.
-- **`GITHUB_TOKEN`** is required to read **private** repos' metadata/READMEs;
-  without it those cards show a `githubError` and no excerpt. It is separate from
-  the OAuth client (OAuth logs the user in; the token reads the GitHub API).
-- **Secrets**: real values live in `.env` (gitignored). Anything set there must
-  be mirrored in Railway's service variables — `.env` is not deployed.
-
-## Verifying changes locally
-
-```bash
-npm run build
-# Boot with auth disabled so you can curl the API without an OAuth session:
-GITHUB_OAUTH_CLIENT_ID= GITHUB_OAUTH_CLIENT_SECRET= PORT=8088 node server/index.js &
-curl -s localhost:8088/api/projects   | jq '.projects[] | {name, readmeExcerpt, deployUrl}'
-curl -s localhost:8088/api/health     | jq '.results'
-```
-
-The macOS app just wraps the live site, so web/CSS changes propagate to it
-automatically once deployed — no Swift rebuild needed unless you change native
-behavior (the WebKit bridge, window/settings) in `mac/Sources/`.
+Dashboard made by [Franklin Blanco](https://franklinblanco.dev). Contributions welcome.
