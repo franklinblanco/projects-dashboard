@@ -35,7 +35,7 @@ function relativeTime(iso) {
   return "just now";
 }
 
-export default function ProjectCard({ project, health, onOpenDoc }) {
+export default function ProjectCard({ project, health, onOpenDoc, onEdit }) {
   const status = health?.status || "checking";
   const gh = project.github;
 
@@ -56,7 +56,12 @@ export default function ProjectCard({ project, health, onOpenDoc }) {
   return (
     <article className="card">
       <div className="card-head">
-        <h2>{project.name}</h2>
+        <div className="card-title">
+          <h2>{project.name}</h2>
+          <button className="edit-btn" onClick={onEdit} title="Edit project" aria-label="Edit project">
+            ✎
+          </button>
+        </div>
         <span className={`status status-${status}`}>
           <span className="status-led" />
           {STATUS_LABEL[status] || status}

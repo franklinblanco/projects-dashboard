@@ -13,7 +13,7 @@ export default function Login({ authError }) {
     <div className="center">
       <div className="login-card">
         <div className="brand center-brand">
-          <span className="logo-dot" />
+          <img className="logo-icon" src="/favicon.svg" alt="" />
           <h1>Projects</h1>
         </div>
         <p className="muted">Sign in with GitHub to view your dashboard.</p>

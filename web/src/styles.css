@@ -67,6 +67,17 @@ body {
   background: linear-gradient(135deg, var(--accent), #a78bfa);
   box-shadow: 0 0 16px rgba(109, 140, 255, 0.6);
 }
+.logo-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: block;
+}
+.center-brand .logo-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
 .topbar-actions {
   display: flex;
   gap: 8px;
@@ -101,10 +112,34 @@ body {
   justify-content: space-between;
   gap: 10px;
 }
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
 .card-head h2 {
   font-size: 17px;
   margin: 0;
   letter-spacing: -0.01em;
+}
+.edit-btn {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  opacity: 0;
+  transition: opacity 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+.card:hover .edit-btn {
+  opacity: 1;
+}
+.edit-btn:hover {
+  color: var(--accent);
+  background: var(--bg-elev-2);
 }
 .card-desc {
   margin: 0;
@@ -511,4 +546,105 @@ body {
 .markdown td {
   border: 1px solid var(--border);
   padding: 6px 10px;
+}
+
+/* ---- Footer ---- */
+.footer {
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+.footer a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.footer a:hover {
+  text-decoration: underline;
+}
+
+/* ---- Button variants ---- */
+.btn.primary.inline {
+  width: auto;
+  padding: 8px 14px;
+}
+.btn.small {
+  padding: 4px 9px;
+  font-size: 12px;
+}
+.btn.danger {
+  border-color: rgba(248, 113, 113, 0.4);
+  color: var(--down);
+  background: transparent;
+}
+.btn.danger:hover {
+  background: rgba(248, 113, 113, 0.12);
+}
+
+/* ---- Project form ---- */
+.form-modal {
+  width: min(640px, 100%);
+}
+.pform {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.pform label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--muted);
+  flex: 1;
+}
+.pform input {
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 9px 11px;
+}
+.pform input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.pform-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+.pform-row .narrow {
+  flex: 0 0 120px;
+}
+.pform-row .btn.small {
+  margin-bottom: 1px;
+}
+.pform-docs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+}
+.pform-docs-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.pform-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.pform-actions .spacer {
+  flex: 1;
 }

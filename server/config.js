@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -38,6 +38,11 @@ export async function loadConfig() {
     throw new Error("Invalid config: `projects` must be an array");
   }
   return parsed;
+}
+
+/** Persists the config back to projects.json (pretty-printed). */
+export async function saveConfig(config) {
+  await writeFile(CONFIG_PATH, JSON.stringify(config, null, 2) + "\n", "utf8");
 }
 
 export const env = {

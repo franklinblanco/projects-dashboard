@@ -3,6 +3,7 @@ import { api } from "./api.js";
 import Login from "./components/Login.jsx";
 import ProjectCard from "./components/ProjectCard.jsx";
 import DocModal from "./components/DocModal.jsx";
+import ProjectForm from "./components/ProjectForm.jsx";
 
 export default function App() {
   const [authState, setAuthState] = useState("loading"); // loading | in | out
@@ -10,6 +11,7 @@ export default function App() {
   const [health, setHealth] = useState({});
   const [error, setError] = useState(null);
   const [doc, setDoc] = useState(null); // { project, doc }
+  const [editing, setEditing] = useState(null); // null | { project } | { project: null }
 
   const checkAuth = useCallback(async () => {
     try {
@@ -81,10 +83,13 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <span className="logo-dot" />
+          <img className="logo-icon" src="/favicon.svg" alt="" />
           <h1>Projects</h1>
         </div>
         <div className="topbar-actions">
+          <button className="btn primary inline" onClick={() => setEditing({ project: null })}>
+            + Add project
+          </button>
           <button className="btn ghost" onClick={loadProjects} title="Refresh">
             ↻ Refresh
           </button>
@@ -103,15 +108,30 @@ export default function App() {
             project={p}
             health={health[p.id]}
             onOpenDoc={(d) => setDoc({ project: p, doc: d })}
+            onEdit={() => setEditing({ project: p })}
           />
         ))}
       </main>
 
+      <footer className="footer">
+        Dashboard made by{" "}
+        <a href="https://franklinblanco.dev" target="_blank" rel="noreferrer">
+          Franklin Blanco
+        </a>
+      </footer>
+
       {doc && (
-        <DocModal
-          project={doc.project}
-          doc={doc.doc}
-          onClose={() => setDoc(null)}
+        <DocModal project={doc.project} doc={doc.doc} onClose={() => setDoc(null)} />
+      )}
+
+      {editing && (
+        <ProjectForm
+          project={editing.project}
+          onClose={() => setEditing(null)}
+          onSaved={() => {
+            setEditing(null);
+            loadProjects();
+          }}
         />
       )}
     </div>

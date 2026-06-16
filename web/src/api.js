@@ -23,6 +23,11 @@ export const api = {
   me: () => req("/auth/me"),
   logout: () => req("/auth/logout", { method: "POST" }),
   projects: () => req("/projects"),
+  projectRaw: (id) => req(`/projects/${id}/raw`),
+  createProject: (body) => req("/projects", { method: "POST", body: JSON.stringify(body) }),
+  updateProject: (id, body) =>
+    req(`/projects/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  deleteProject: (id) => req(`/projects/${id}`, { method: "DELETE" }),
   health: (id) => req(`/health/${id}`),
   doc: (id, path) => req(`/doc/${id}${path ? `?path=${encodeURIComponent(path)}` : ""}`),
   localPath: (id) => req(`/local-path/${id}`),
