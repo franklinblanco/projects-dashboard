@@ -18,6 +18,7 @@ struct DashboardWebView: NSViewRepresentable {
 
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
+        webView.uiDelegate = context.coordinator
         // Persist cookies (the auth session) across launches.
         webView.configuration.websiteDataStore = .default()
         load(webView)
@@ -36,8 +37,43 @@ struct DashboardWebView: NSViewRepresentable {
         webView.load(URLRequest(url: url))
     }
 
-    final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
+    final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate, WKUIDelegate {
         var lastURL: String = ""
+
+        private var dashboardHost: String? { URL(string: lastURL)?.host }
+
+        // `target="_blank"` / window.open: WKWebView can't make a new window, so
+        // open the link in the user's default browser instead.
+        func webView(
+            _ webView: WKWebView,
+            createWebViewWith configuration: WKWebViewConfiguration,
+            for navigationAction: WKNavigationAction,
+            windowFeatures: WKWindowFeatures
+        ) -> WKWebView? {
+            if let url = navigationAction.request.url {
+                NSWorkspace.shared.open(url)
+            }
+            return nil
+        }
+
+        // Clicks on links to other hosts (GitHub, Railway, README links, …) open
+        // in the default browser; in-app navigation stays inside the dashboard.
+        func webView(
+            _ webView: WKWebView,
+            decidePolicyFor navigationAction: WKNavigationAction,
+            decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+        ) {
+            if navigationAction.navigationType == .linkActivated,
+               let url = navigationAction.request.url,
+               let scheme = url.scheme?.lowercased(),
+               scheme == "http" || scheme == "https",
+               url.host != nil, url.host != dashboardHost {
+                NSWorkspace.shared.open(url)
+                decisionHandler(.cancel)
+                return
+            }
+            decisionHandler(.allow)
+        }
 
         func userContentController(
             _ userContentController: WKUserContentController,
