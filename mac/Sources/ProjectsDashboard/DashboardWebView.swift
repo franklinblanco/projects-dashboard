@@ -1,5 +1,7 @@
 import SwiftUI
 import WebKit
+import AppKit
+import CoreServices
 
 /// SwiftUI wrapper around WKWebView. Installs `openTerminal` and `openClaude`
 /// message handlers so the web app can ask the native app to open a terminal at
@@ -49,10 +51,8 @@ struct DashboardWebView: NSViewRepresentable {
             }
         }
 
-        /// Opens a terminal at `path` (optionally launching `claude`) using the
-        /// system's *default* terminal. We write a temporary `.command` script
-        /// and `open` it with no `-a`, so whichever app the user has set as the
-        /// default handler for `.command` files runs it (Terminal, iTerm, etc.).
+        /// Opens a terminal at `path` (optionally launching `claude`). We write a
+        /// temporary shell script and open it with the resolved terminal app.
         private func openInTerminal(at path: String, runClaude: Bool) {
             let expanded = (path as NSString).expandingTildeInPath
             var isDir: ObjCBool = false
@@ -69,6 +69,9 @@ struct DashboardWebView: NSViewRepresentable {
             lines.append("exec \"$SHELL\" -l")
             let script = lines.joined(separator: "\n") + "\n"
 
+            // ".command" so it's a valid shell script; we open it explicitly with
+            // the resolved terminal app (not via the file's default handler, which
+            // for .command is always Terminal.app).
             let scriptURL = FileManager.default.temporaryDirectory
                 .appendingPathComponent("projects-dashboard-\(UUID().uuidString).command")
             do {
@@ -80,14 +83,48 @@ struct DashboardWebView: NSViewRepresentable {
                 return
             }
 
-            let task = Process()
-            task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-            task.arguments = [scriptURL.path]
-            do {
-                try task.run()
-            } catch {
-                NSLog("openInTerminal failed: \(error)")
+            let appURL = Self.resolveTerminalAppURL()
+            let cfg = NSWorkspace.OpenConfiguration()
+            cfg.activates = true
+            NSWorkspace.shared.open([scriptURL], withApplicationAt: appURL, configuration: cfg) { _, error in
+                if let error { NSLog("openInTerminal: open failed: \(error)") }
             }
+        }
+
+        /// Resolves which terminal app to use, honoring the user's default.
+        /// Order: explicit Settings override → the system default handler for
+        /// shell scripts (this is what reflects "default terminal", e.g. iTerm) →
+        /// iTerm2 if installed → Terminal.
+        static func resolveTerminalAppURL() -> URL {
+            let ws = NSWorkspace.shared
+
+            // 1. Explicit override from Settings (path, bundle id, or app name).
+            let override = (UserDefaults.standard.string(forKey: "terminalApp") ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if !override.isEmpty {
+                if override.hasPrefix("/"), FileManager.default.fileExists(atPath: override) {
+                    return URL(fileURLWithPath: override)
+                }
+                if let url = ws.urlForApplication(withBundleIdentifier: override) { return url }
+                let named = "/Applications/\(override).app"
+                if FileManager.default.fileExists(atPath: named) { return URL(fileURLWithPath: named) }
+            }
+
+            // 2. System default handler for shell scripts. `public.shell-script`
+            //    is what iTerm's "Make Default Term" registers; `.command`'s own
+            //    UTI is intentionally avoided since it's hardwired to Terminal.
+            for type in ["public.shell-script", "public.unix-executable"] {
+                if let id = LSCopyDefaultRoleHandlerForContentType(type as CFString, .all)?
+                    .takeRetainedValue() as String?,
+                   let url = ws.urlForApplication(withBundleIdentifier: id) {
+                    return url
+                }
+            }
+
+            // 3. Prefer iTerm2 if present, else Terminal.
+            if let url = ws.urlForApplication(withBundleIdentifier: "com.googlecode.iterm2") { return url }
+            return ws.urlForApplication(withBundleIdentifier: "com.apple.Terminal")
+                ?? URL(fileURLWithPath: "/System/Applications/Utilities/Terminal.app")
         }
     }
 }

@@ -30,7 +30,9 @@ struct ProjectsDashboardApp: App {
 struct SettingsView: View {
     @Binding var dashboardURL: String
     @Binding var isPresented: Bool
+    @AppStorage("terminalApp") private var terminalApp: String = ""
     @State private var draft: String = ""
+    @State private var terminalDraft: String = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -41,17 +43,32 @@ struct SettingsView: View {
             TextField("https://dashboard.franklinblanco.dev", text: $draft)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 380)
+
+            Divider()
+
+            Text("Terminal app").font(.headline)
+            Text("Leave blank to use your system default terminal. Otherwise an app name (e.g. iTerm), bundle id, or full path.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            TextField("(system default)", text: $terminalDraft)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 380)
+
             HStack {
                 Spacer()
                 Button("Cancel") { isPresented = false }
                 Button("Save") {
                     if !draft.isEmpty { dashboardURL = draft }
+                    terminalApp = terminalDraft.trimmingCharacters(in: .whitespacesAndNewlines)
                     isPresented = false
                 }
                 .keyboardShortcut(.defaultAction)
             }
         }
         .padding(24)
-        .onAppear { draft = dashboardURL }
+        .onAppear {
+            draft = dashboardURL
+            terminalDraft = terminalApp
+        }
     }
 }
