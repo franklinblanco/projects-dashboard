@@ -6,7 +6,6 @@ import DocModal from "./components/DocModal.jsx";
 
 export default function App() {
   const [authState, setAuthState] = useState("loading"); // loading | in | out
-  const [methods, setMethods] = useState({});
   const [data, setData] = useState(null);
   const [health, setHealth] = useState({});
   const [error, setError] = useState(null);
@@ -15,7 +14,6 @@ export default function App() {
   const checkAuth = useCallback(async () => {
     try {
       const me = await api.me();
-      setMethods(me.methods || {});
       setAuthState(me.authenticated ? "in" : "out");
     } catch {
       setAuthState("out");
@@ -76,16 +74,7 @@ export default function App() {
   }
   if (authState === "out") {
     const authError = new URLSearchParams(window.location.search).get("auth_error");
-    return (
-      <Login
-        methods={methods}
-        authError={authError}
-        onSuccess={() => {
-          window.history.replaceState({}, "", "/");
-          setAuthState("in");
-        }}
-      />
-    );
+    return <Login authError={authError} />;
   }
 
   return (

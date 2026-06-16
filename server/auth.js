@@ -1,17 +1,12 @@
 import crypto from "node:crypto";
-import {
-  env,
-  authEnabled,
-  passwordAuthEnabled,
-  githubOAuthEnabled,
-} from "./config.js";
+import { env, authEnabled, githubOAuthEnabled } from "./config.js";
 
 const COOKIE_NAME = "dash_session";
 
 function secret() {
   // Fall back to a derived secret so dev works without config, but warn loudly.
   if (env.sessionSecret) return env.sessionSecret;
-  return crypto.createHash("sha256").update("insecure-dev-secret:" + env.password).digest("hex");
+  return crypto.createHash("sha256").update("insecure-dev-secret").digest("hex");
 }
 
 function base64url(buf) {
@@ -71,17 +66,6 @@ function clearSessionCookie(res) {
   );
 }
 
-function constantTimeEqual(a, b) {
-  const ab = Buffer.from(a);
-  const bb = Buffer.from(b);
-  if (ab.length !== bb.length) {
-    // Still compare to avoid trivial length leak shortcut.
-    crypto.timingSafeEqual(ab, ab);
-    return false;
-  }
-  return crypto.timingSafeEqual(ab, bb);
-}
-
 /** Express middleware: rejects unauthenticated requests when auth is enabled. */
 export function requireAuth(req, res, next) {
   if (!authEnabled) return next();
@@ -102,32 +86,16 @@ const STATE_COOKIE = "oauth_state";
 /** Mounts /api/auth/* routes on the given router. */
 export function registerAuthRoutes(router) {
   router.get("/auth/me", (req, res) => {
-    const methods = { password: passwordAuthEnabled, github: githubOAuthEnabled };
     if (!authEnabled) {
-      return res.json({ authenticated: true, authEnabled: false, methods });
+      return res.json({ authenticated: true, authEnabled: false });
     }
     const cookies = parseCookies(req);
     const session = verify(cookies[COOKIE_NAME]);
     res.json({
       authenticated: Boolean(session),
       authEnabled: true,
-      methods,
       user: session?.u || null,
     });
-  });
-
-  // ---- Password login ----
-  router.post("/auth/login", (req, res) => {
-    if (!passwordAuthEnabled) {
-      return res.status(404).json({ error: "password auth disabled" });
-    }
-    const password = (req.body && req.body.password) || "";
-    if (!constantTimeEqual(password, env.password)) {
-      return res.status(401).json({ error: "invalid password" });
-    }
-    const token = sign({ u: "owner", exp: Date.now() + env.sessionTtlMs });
-    setSessionCookie(res, token);
-    res.json({ ok: true });
   });
 
   router.post("/auth/logout", (req, res) => {

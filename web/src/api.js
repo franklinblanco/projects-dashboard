@@ -21,8 +21,6 @@ async function req(path, opts) {
 
 export const api = {
   me: () => req("/auth/me"),
-  login: (password) =>
-    req("/auth/login", { method: "POST", body: JSON.stringify({ password }) }),
   logout: () => req("/auth/logout", { method: "POST" }),
   projects: () => req("/projects"),
   health: (id) => req(`/health/${id}`),
@@ -34,4 +32,5 @@ export const api = {
 export const macBridge = {
   available: () => Boolean(window.webkit?.messageHandlers?.openTerminal),
   openTerminal: (path) => window.webkit.messageHandlers.openTerminal.postMessage(path),
+  openClaude: (path) => window.webkit.messageHandlers.openClaude.postMessage(path),
 };

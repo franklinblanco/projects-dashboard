@@ -70,7 +70,7 @@
       "railwayUrl": "https://railway.com/project/b6dc2145-0f78-4330-9bf9-7848cebb2895",
       "deployUrl": "https://dashboard.franklinblanco.dev",
       "healthcheck": {
-        "url": "",
+        "url": "https://dashboard.franklinblanco.dev/",
         "method": "GET",
         "expectStatus": 200,
         "timeoutMs": 8000

@@ -46,6 +46,13 @@ export default function ProjectCard({ project, health, onOpenDoc }) {
     } catch {}
   }
 
+  async function openClaude() {
+    try {
+      const { localPath } = await api.localPath(project.id);
+      if (localPath) macBridge.openClaude(localPath);
+    } catch {}
+  }
+
   return (
     <article className="card">
       <div className="card-head">
@@ -63,14 +70,21 @@ export default function ProjectCard({ project, health, onOpenDoc }) {
         {project.description || gh?.description || "No description."}
       </p>
 
-      {project.readmeExcerpt && <p className="card-readme">{project.readmeExcerpt}</p>}
+      {project.readmeExcerpt && (
+        <button
+          className="card-readme"
+          onClick={() => onOpenDoc({ label: "README", path: "README.md" })}
+          title="Open full README"
+        >
+          <span className="card-readme-text">{project.readmeExcerpt}</span>
+          <span className="card-readme-more">Read more →</span>
+        </button>
+      )}
 
-      {gh && (
+      {gh && (gh.language || gh.pushedAt) && (
         <div className="card-meta">
           {gh.language && <span className="chip">{gh.language}</span>}
-          {gh.stars != null && <span className="chip">★ {gh.stars}</span>}
           {gh.pushedAt && <span className="chip">pushed {relativeTime(gh.pushedAt)}</span>}
-          <span className="chip">{project.branch}</span>
         </div>
       )}
       {project.githubError && (
@@ -100,11 +114,6 @@ export default function ProjectCard({ project, health, onOpenDoc }) {
             Railway
           </span>
         )}
-        {health?.httpStatus && status !== "unconfigured" && (
-          <span className="btn link disabled" title="Last healthcheck HTTP status">
-            HTTP {health.httpStatus}
-          </span>
-        )}
       </div>
 
       <div className="card-docs">
@@ -113,22 +122,23 @@ export default function ProjectCard({ project, health, onOpenDoc }) {
             📄 {d.label}
           </button>
         ))}
-        {project.deployUrl && (
-          <a
-            className="doc-chip deploy"
-            href={project.deployUrl}
-            target="_blank"
-            rel="noreferrer"
-          >
-            🚀 Deploy
-          </a>
-        )}
+        <button
+          className="doc-chip deploy"
+          onClick={() => onOpenDoc({ label: "Deploy guide", path: "DEPLOY.md" })}
+        >
+          🚀 Deploy
+        </button>
       </div>
 
       {project.hasLocalPath && macBridge.available() && (
-        <button className="btn terminal" onClick={openTerminal}>
-          ⌄_ Open Terminal
-        </button>
+        <div className="card-native">
+          <button className="btn terminal" onClick={openTerminal}>
+            {">_"} Open Terminal
+          </button>
+          <button className="btn claude" onClick={openClaude}>
+            ✳ Open with Claude Code
+          </button>
+        </div>
       )}
     </article>
   );

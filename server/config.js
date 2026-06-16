@@ -43,9 +43,7 @@ export async function loadConfig() {
 export const env = {
   port: Number(process.env.PORT) || 8080,
   githubToken: process.env.GITHUB_TOKEN || "",
-  // Auth: when neither a password nor OAuth is configured, auth is disabled
-  // (local dev only).
-  password: process.env.DASHBOARD_PASSWORD || "",
+  // Auth: when GitHub OAuth is not configured, auth is disabled (local dev only).
   sessionSecret: process.env.SESSION_SECRET || "",
   // 7 days
   sessionTtlMs: Number(process.env.SESSION_TTL_MS) || 7 * 24 * 60 * 60 * 1000,
@@ -65,6 +63,5 @@ export const env = {
     .filter(Boolean),
 };
 
-export const passwordAuthEnabled = Boolean(env.password);
 export const githubOAuthEnabled = Boolean(env.oauthClientId && env.oauthClientSecret);
-export const authEnabled = passwordAuthEnabled || githubOAuthEnabled;
+export const authEnabled = githubOAuthEnabled;

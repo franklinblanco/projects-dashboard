@@ -5,4 +5,5 @@ web/dist/
 .DS_Store
 mac/.build/
 mac/.swiftpm/
+mac/dist/
 *.log

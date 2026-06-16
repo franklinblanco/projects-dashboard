@@ -129,7 +129,7 @@ if (existsSync(dist)) {
 app.listen(env.port, () => {
   console.log(`projects-dashboard listening on :${env.port}`);
   if (!authEnabled) {
-    console.warn("⚠️  AUTH DISABLED — set DASHBOARD_PASSWORD to require login.");
+    console.warn("⚠️  AUTH DISABLED — set GITHUB_OAUTH_CLIENT_ID/SECRET to require login.");
   } else if (!env.sessionSecret) {
     console.warn("⚠️  SESSION_SECRET not set — using a derived dev secret. Set it in production.");
   }
