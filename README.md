@@ -6,6 +6,10 @@ app that can open a terminal (or Claude Code) at each project's folder.
 
 Free and open source (MIT). Run your own instance in a couple of minutes.
 
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new/template?template=https://github.com/franklinblanco/projects-dashboard)
+
+After deploying, do the [3 post-deploy steps](#deploy-railway) (volume + env vars).
+
 > Add projects from the UI — no config files to hand-edit. Everything is stored
 > in a single `projects.json` you control.
 
@@ -49,10 +53,15 @@ npm run build && npm start  # serves the built app + API on :8080
 
 ## Deploy (Railway)
 
-1. Create a service from your fork (`railway.json` defines build/start).
-2. **Add a Volume** and mount it at `/app/data`, then set `DATA_DIR=/app/data`.
-   This is required so projects you add/edit survive redeploys.
-3. Set service variables:
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new/template?template=https://github.com/franklinblanco/projects-dashboard)
+
+The button creates the service from this repo. The button can't set up storage or
+secrets for you, so after it deploys, do these **3 steps**:
+
+1. **Add a Volume** (service → Settings → Volumes), mount it at `/app/data`, and
+   set the variable `DATA_DIR=/app/data`. Required so projects you add/edit
+   survive redeploys.
+2. **Set service variables**:
    | Variable | Purpose |
    | --- | --- |
    | `SESSION_SECRET` | `openssl rand -hex 32` |
@@ -60,10 +69,12 @@ npm run build && npm start  # serves the built app + API on :8080
    | `GITHUB_ALLOWED_USERS` | your GitHub login (lock it down!) |
    | `GITHUB_TOKEN` | read-only PAT (reads your repos' metadata/READMEs) |
    | `NODE_ENV=production` | marks the session cookie `Secure` |
-4. Add a custom domain in Railway, point a CNAME at it, and set your OAuth app's
-   callback to `https://YOUR-DOMAIN/api/auth/github/callback`.
+3. **Domain + OAuth**: add a custom domain (or use the generated one), then set
+   your GitHub OAuth app's callback to `https://YOUR-DOMAIN/api/auth/github/callback`.
 
-Any Node host works the same way — just point `DATA_DIR` at persistent storage.
+Then open the dashboard, sign in, and **⇪ Import** your `data/projects.json` (or
+add projects from the UI). Any Node host works the same way — just point
+`DATA_DIR` at persistent storage.
 
 ## Authentication (GitHub OAuth)
 
