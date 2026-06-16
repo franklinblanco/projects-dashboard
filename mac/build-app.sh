@@ -42,6 +42,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>LSMinimumSystemVersion</key><string>13.0</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSPrincipalClass</key><string>NSApplication</string>
+  <key>NSAppleEventsUsageDescription</key><string>Projects Dashboard opens your terminal in a new window at a project's folder.</string>
 </dict>
 </plist>
 PLIST

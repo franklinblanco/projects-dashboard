@@ -51,8 +51,9 @@ struct DashboardWebView: NSViewRepresentable {
             }
         }
 
-        /// Opens a terminal at `path` (optionally launching `claude`). We write a
-        /// temporary shell script and open it with the resolved terminal app.
+        /// Opens a terminal at `path` (optionally launching `claude`) in a NEW
+        /// window. For iTerm/Terminal we drive AppleScript so we control window
+        /// vs. tab; other terminals fall back to opening a fresh app instance.
         private func openInTerminal(at path: String, runClaude: Bool) {
             let expanded = (path as NSString).expandingTildeInPath
             var isDir: ObjCBool = false
@@ -61,17 +62,59 @@ struct DashboardWebView: NSViewRepresentable {
                 return
             }
 
-            // Single-quote the path so it's safe inside the shell script.
-            let quoted = "'" + expanded.replacingOccurrences(of: "'", with: "'\\''") + "'"
-            var lines = ["#!/bin/zsh", "cd \(quoted) || exit 1"]
-            if runClaude { lines.append("claude") }
-            // Drop into an interactive login shell afterwards so the window stays.
-            lines.append("exec \"$SHELL\" -l")
-            let script = lines.joined(separator: "\n") + "\n"
+            // Shell command: cd into the project, optionally run claude.
+            let shellPath = "'" + expanded.replacingOccurrences(of: "'", with: "'\\''") + "'"
+            var command = "cd \(shellPath)"
+            if runClaude { command += " && claude" }
 
-            // ".command" so it's a valid shell script; we open it explicitly with
-            // the resolved terminal app (not via the file's default handler, which
-            // for .command is always Terminal.app).
+            let appURL = Self.resolveTerminalAppURL()
+            let bundleID = Bundle(url: appURL)?.bundleIdentifier ?? ""
+
+            switch bundleID {
+            case "com.googlecode.iterm2":
+                runAppleScript([
+                    "tell application \"iTerm\"",
+                    "  set newWindow to (create window with default profile)",
+                    "  tell current session of newWindow to write text \(asAppleScriptString(command))",
+                    "  activate",
+                    "end tell",
+                ])
+            case "com.apple.Terminal":
+                // `do script` with no target window opens a NEW window.
+                runAppleScript([
+                    "tell application \"Terminal\"",
+                    "  do script \(asAppleScriptString(command))",
+                    "  activate",
+                    "end tell",
+                ])
+            default:
+                openViaScriptFile(command: command, appURL: appURL)
+            }
+        }
+
+        /// Escapes a string as an AppleScript string literal.
+        private func asAppleScriptString(_ s: String) -> String {
+            let escaped = s
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "\"", with: "\\\"")
+            return "\"\(escaped)\""
+        }
+
+        private func runAppleScript(_ lines: [String]) {
+            let task = Process()
+            task.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+            task.arguments = lines.flatMap { ["-e", $0] }
+            do {
+                try task.run()
+            } catch {
+                NSLog("runAppleScript failed: \(error)")
+            }
+        }
+
+        /// Fallback for unknown terminals: write a temp script and open a fresh
+        /// instance of the app (`-n`), which gives a new window for most terminals.
+        private func openViaScriptFile(command: String, appURL: URL) {
+            let script = "#!/bin/zsh\n\(command)\nexec \"$SHELL\" -l\n"
             let scriptURL = FileManager.default.temporaryDirectory
                 .appendingPathComponent("projects-dashboard-\(UUID().uuidString).command")
             do {
@@ -79,16 +122,13 @@ struct DashboardWebView: NSViewRepresentable {
                 try FileManager.default.setAttributes(
                     [.posixPermissions: 0o700], ofItemAtPath: scriptURL.path)
             } catch {
-                NSLog("openInTerminal: failed to write script: \(error)")
+                NSLog("openViaScriptFile: failed to write script: \(error)")
                 return
             }
-
-            let appURL = Self.resolveTerminalAppURL()
-            let cfg = NSWorkspace.OpenConfiguration()
-            cfg.activates = true
-            NSWorkspace.shared.open([scriptURL], withApplicationAt: appURL, configuration: cfg) { _, error in
-                if let error { NSLog("openInTerminal: open failed: \(error)") }
-            }
+            let task = Process()
+            task.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+            task.arguments = ["-n", "-a", appURL.path, scriptURL.path]
+            try? task.run()
         }
 
         /// Resolves which terminal app to use, honoring the user's default.
