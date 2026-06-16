@@ -122,12 +122,16 @@ export default function ProjectCard({ project, health, onOpenDoc }) {
             📄 {d.label}
           </button>
         ))}
-        <button
-          className="doc-chip deploy"
-          onClick={() => onOpenDoc({ label: "Deploy guide", path: "DEPLOY.md" })}
-        >
-          🚀 Deploy
-        </button>
+        {project.deployUrl && (
+          <a
+            className="doc-chip deploy"
+            href={project.deployUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            🚀 Live
+          </a>
+        )}
       </div>
 
       {project.hasLocalPath && macBridge.available() && (

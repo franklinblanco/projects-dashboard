@@ -1,8 +1,8 @@
 # Projects Dashboard
 
 A personal dashboard for your development projects: live healthchecks, GitHub
-metadata, Railway links, rendered READMEs / deploy guides — plus a native macOS
-app that wraps the site and can open a Terminal at each project's path.
+metadata, Railway + live-deployment links, rendered READMEs — plus a native
+macOS app that wraps the site and can open a Terminal at each project's path.
 
 Live at **https://dashboard.franklinblanco.dev** (deployed on Railway).
 
@@ -13,7 +13,6 @@ projects-dashboard/
 ├── web/                   # React + Vite dashboard (built into web/dist)
 ├── mac/                   # SwiftUI macOS app (WKWebView + native bridge)
 ├── railway.json           # Railway build/deploy config
-├── DEPLOY.md              # deploy guide (opened by this project's Deploy button)
 └── .env.example
 ```
 
@@ -31,10 +30,12 @@ projects-dashboard/
   httpOnly session cookie (`server/auth.js`, HMAC via Node `crypto` — no DB).
 - **Open Terminal** / **Open with Claude Code** only appear in the macOS app:
   the web app calls the `openTerminal` / `openClaude` WebKit message handlers, and
-  the Swift side writes a temp `.command` and `open`s it via the system's default
-  terminal app (whatever handles `.command` files), `cd`-ing to the project — and
-  running `claude` for the Claude action. Local paths are never sent to the
-  browser; the app fetches them from `/api/local-path/:id` on demand.
+  the Swift side opens a **new window** in your default terminal (resolved via the
+  `public.shell-script` handler, e.g. iTerm) using AppleScript, `cd`-ing to the
+  project — and running `claude` for the Claude action. Local paths are never sent
+  to the browser; the app fetches them from `/api/local-path/:id` on demand.
+- **External links** (GitHub, Railway, the **Live** button) open in the default
+  browser when clicked inside the macOS app.
 
 ## Local development
 
@@ -53,8 +54,20 @@ npm run build && npm start  # serves the built app + API on :8080
 ## Deploy
 
 Push to `master` → Railway auto-deploys (`railway.json` defines build/start).
-Full setup (Railway variables, custom domain, Porkbun DNS, OAuth callback) is in
-[DEPLOY.md](DEPLOY.md).
+
+1. **Service**: connect the GitHub repo in Railway (or `railway init`).
+2. **Variables** (Settings → Variables):
+   - `SESSION_SECRET` — `openssl rand -hex 32`
+   - `GITHUB_OAUTH_CLIENT_ID` / `GITHUB_OAUTH_CLIENT_SECRET` — from your OAuth app
+   - `GITHUB_ALLOWED_USERS` — `franklinblanco`
+   - `GITHUB_TOKEN` — read-only PAT (reads private repos' metadata/READMEs)
+   - `NODE_ENV=production` — marks the session cookie `Secure`
+   - (`PORT` is injected by Railway — don't set it.)
+3. **Custom domain**: Settings → Networking → add `dashboard.franklinblanco.dev`;
+   Railway returns a CNAME target.
+4. **DNS (Porkbun)**: add a CNAME record `dashboard` → the Railway target. TLS is
+   provisioned automatically; the server sets `trust proxy` so the `Secure` cookie
+   and HTTPS callback detection work behind Railway's proxy.
 
 ## macOS app
 
@@ -79,8 +92,10 @@ enable it: register an OAuth app at https://github.com/settings/developers with
 callback `…/api/auth/github/callback`, then set `GITHUB_OAUTH_CLIENT_ID`,
 `GITHUB_OAUTH_CLIENT_SECRET`, and `GITHUB_ALLOWED_USERS`. The flow uses the
 `read:user` scope, verifies a CSRF `state`, and rejects logins not in the
-allow-list (`/?auth_error=forbidden`). See [DEPLOY.md](DEPLOY.md) for specifics.
-Optionally, Cloudflare Access can front the domain instead.
+allow-list (`/?auth_error=forbidden`). The OAuth app's callback URL must be
+`https://dashboard.franklinblanco.dev/api/auth/github/callback` (use
+`http://localhost:8080/...` for local dev). Optionally, Cloudflare Access can
+front the domain instead.
 
 ---
 
@@ -103,7 +118,7 @@ on every request (no restart required).
   "branch": "master",                       // branch READMEs/docs/excerpt are read from
   "localPath": "/Users/franklinblanco/Developer/my-project", // for the macOS terminal shortcut; NEVER sent to the browser
   "railwayUrl": "https://railway.com/project/<id>",          // opens the Railway console (the "Railway" button)
-  "deployUrl": "https://my-project.example.com",             // the live deployment (informational)
+  "deployUrl": "https://my-project.example.com",             // live deployment (the card's "Live" button); omit to hide the button
   "healthcheck": {
     "url": "https://my-project.example.com/health",          // server-side ping; leave "" for "no healthcheck"
     "method": "GET",
@@ -129,13 +144,6 @@ How to discover each value (these commands are how the seeded projects were fill
   domain.
 - **`deployUrl`**: the public app URL.
 - **`railwayUrl`**: ask the user (these are Railway console links, not derivable).
-
-## The Deploy button → `DEPLOY.md`
-
-Each card's 🚀 **Deploy** button opens `DEPLOY.md` from that repo's default
-branch, rendered in the modal. For it to work, the target repo should contain a
-`DEPLOY.md` at its root. This repo has one. The button is always shown; if the
-file is missing the modal shows a "could not load" message.
 
 ## Modifying or removing a project
 
