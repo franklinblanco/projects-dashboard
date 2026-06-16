@@ -63,6 +63,8 @@ export default function ProjectCard({ project, health, onOpenDoc }) {
         {project.description || gh?.description || "No description."}
       </p>
 
+      {project.readmeExcerpt && <p className="card-readme">{project.readmeExcerpt}</p>}
+
       {gh && (
         <div className="card-meta">
           {gh.language && <span className="chip">{gh.language}</span>}
@@ -111,6 +113,16 @@ export default function ProjectCard({ project, health, onOpenDoc }) {
             📄 {d.label}
           </button>
         ))}
+        {project.deployUrl && (
+          <a
+            className="doc-chip deploy"
+            href={project.deployUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            🚀 Deploy
+          </a>
+        )}
       </div>
 
       {project.hasLocalPath && macBridge.available() && (

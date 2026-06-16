@@ -5,7 +5,7 @@ import { existsSync } from "node:fs";
 
 import { loadConfig, env, authEnabled } from "./config.js";
 import { requireAuth, registerAuthRoutes } from "./auth.js";
-import { getRepoMeta, getReadme, getContent } from "./github.js";
+import { getRepoMeta, getReadme, getContent, readmeExcerpt } from "./github.js";
 import { checkHealth } from "./health.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -34,12 +34,18 @@ api.get("/projects", async (_req, res) => {
       config.projects.map(async (p) => {
         let github = null;
         let githubError = null;
+        let excerpt = null;
         try {
           github = await getRepoMeta(p.repo);
         } catch (e) {
           githubError = String(e.message || e);
         }
-        return { ...publicProject(p), github, githubError };
+        try {
+          excerpt = readmeExcerpt(await getReadme(p.repo, p.branch));
+        } catch {
+          // README missing/inaccessible — card just shows no excerpt.
+        }
+        return { ...publicProject(p), github, githubError, readmeExcerpt: excerpt };
       })
     );
     res.json({ githubUser: config.githubUser, projects });

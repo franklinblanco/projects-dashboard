@@ -45,8 +45,13 @@ export async function getRepoMeta(repo) {
   };
 }
 
-/** Raw README markdown for a repo (optionally a specific ref). */
+const readmeCache = new Map();
+
+/** Raw README markdown for a repo (optionally a specific ref). Cached 5 min. */
 export async function getReadme(repo, ref) {
+  const key = `${repo}@${ref || ""}`;
+  const hit = readmeCache.get(key);
+  if (hit && Date.now() - hit.at < TTL_MS) return hit.text;
   const url = `${API}/repos/${repo}/readme${ref ? `?ref=${encodeURIComponent(ref)}` : ""}`;
   const res = await fetch(url, {
     headers: { ...headers(), Accept: "application/vnd.github.raw" },
@@ -56,7 +61,55 @@ export async function getReadme(repo, ref) {
     err.status = res.status;
     throw err;
   }
-  return await res.text();
+  const text = await res.text();
+  readmeCache.set(key, { at: Date.now(), text });
+  return text;
+}
+
+/**
+ * Distil a README into a short plain-text snippet for the card: strips badges,
+ * images, code blocks, headings and inline markdown, then returns the first
+ * real paragraph truncated to `max` chars.
+ */
+export function readmeExcerpt(md, max = 220) {
+  if (!md) return null;
+  const cleaned = md
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/```[\s\S]*?```/g, "")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "") // markdown images
+    .replace(/<[^>]+>/g, " "); // strip all HTML tags (centered headers, badges, etc.)
+
+  const paragraphs = [];
+  let current = [];
+  for (const raw of cleaned.split("\n")) {
+    const line = raw.trim();
+    if (!line) {
+      if (current.length) paragraphs.push(current.join(" "));
+      current = [];
+      continue;
+    }
+    if (/^#{1,6}\s/.test(line)) continue; // headings
+    if (/^[-=*]{3,}$/.test(line)) continue; // horizontal rules
+    if (/^\[?!\[/.test(line)) continue; // badge / image lines
+    current.push(line);
+  }
+  if (current.length) paragraphs.push(current.join(" "));
+
+  const clean = (p) =>
+    p
+      .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1") // links -> text
+      .replace(/[*_`>#|]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  // Prefer the first substantial prose paragraph (skips a lone title/tagline).
+  let para =
+    paragraphs.map(clean).find((p) => p.length >= 40) ||
+    paragraphs.map(clean).find((p) => p.replace(/[^a-z0-9]/gi, "").length > 3) ||
+    "";
+  if (!para) return null;
+  if (para.length > max) para = para.slice(0, max).replace(/\s+\S*$/, "") + "…";
+  return para;
 }
 
 /**
