@@ -42,6 +42,23 @@ struct DashboardWebView: NSViewRepresentable {
 
         private var dashboardHost: String? { URL(string: lastURL)?.host }
 
+        // `<input type="file">` does nothing in WKWebView unless we present the
+        // open panel ourselves — this is what makes the Import button work.
+        func webView(
+            _ webView: WKWebView,
+            runOpenPanelWith parameters: WKOpenPanelParameters,
+            initiatedByFrame frame: WKFrameInfo,
+            completionHandler: @escaping ([URL]?) -> Void
+        ) {
+            let panel = NSOpenPanel()
+            panel.canChooseFiles = true
+            panel.canChooseDirectories = parameters.allowsDirectories
+            panel.allowsMultipleSelection = parameters.allowsMultipleSelection
+            panel.begin { response in
+                completionHandler(response == .OK ? panel.urls : nil)
+            }
+        }
+
         // `target="_blank"` / window.open: WKWebView can't make a new window, so
         // open the link in the user's default browser instead.
         func webView(
