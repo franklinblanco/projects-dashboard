@@ -171,7 +171,11 @@ export default function App() {
 
       <footer className="footer">
         Dashboard made by{" "}
-        <a href="https://franklinblanco.dev" target="_blank" rel="noreferrer">
+        <a
+          href="https://github.com/franklinblanco/projects-dashboard"
+          target="_blank"
+          rel="noreferrer"
+        >
           Franklin Blanco
         </a>
       </footer>
