@@ -84,12 +84,24 @@ struct DashboardWebView: NSViewRepresentable {
                let url = navigationAction.request.url,
                let scheme = url.scheme?.lowercased(),
                scheme == "http" || scheme == "https",
-               url.host != nil, url.host != dashboardHost {
+               url.host != nil, url.host != dashboardHost,
+               !isAuthFlowURL(url) {
                 NSWorkspace.shared.open(url)
                 decisionHandler(.cancel)
                 return
             }
             decisionHandler(.allow)
+        }
+
+        /// GitHub's OAuth / sign-in pages must stay INSIDE the web view so the
+        /// dashboard session cookie is set when the flow redirects back. Regular
+        /// GitHub links (repos, profiles) have other paths and still open in the
+        /// external browser.
+        private func isAuthFlowURL(_ url: URL) -> Bool {
+            guard url.host?.lowercased() == "github.com" else { return false }
+            let path = url.path.lowercased()
+            // /login/oauth/authorize, /login, /session, /sessions/two-factor, …
+            return path.hasPrefix("/login") || path.hasPrefix("/session")
         }
 
         // A failed load otherwise leaves a blank white view — show a helpful page.
@@ -101,9 +113,13 @@ struct DashboardWebView: NSViewRepresentable {
         }
 
         private func showLoadError(in webView: WKWebView, error: Error) {
-            // Ignore cancellations (e.g. our own decidePolicyFor .cancel).
+            // Ignore cancellations, not real load failures: NSURLErrorCancelled
+            // (-999) and WebKit's "frame load interrupted" (102) — the latter is
+            // what a deliberate decisionHandler(.cancel) reports, e.g. when we
+            // hand an external link off to the browser.
             let nsError = error as NSError
             if nsError.code == NSURLErrorCancelled { return }
+            if nsError.domain == "WebKitErrorDomain" && nsError.code == 102 { return }
             let safeURL = lastURL
                 .replacingOccurrences(of: "&", with: "&amp;")
                 .replacingOccurrences(of: "<", with: "&lt;")
