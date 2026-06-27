@@ -24,6 +24,14 @@ const STATUS_LABEL = {
   unconfigured: "No healthcheck",
 };
 
+// Lifecycle tag → display label. Empty/unknown status shows no tag.
+const PROJECT_TAGS = {
+  published: "Published",
+  development: "Development",
+  stale: "Stale",
+  abandoned: "Abandoned",
+};
+
 function relativeTime(iso) {
   if (!iso) return null;
   const diff = Date.now() - new Date(iso).getTime();
@@ -35,7 +43,16 @@ function relativeTime(iso) {
   return "just now";
 }
 
-export default function ProjectCard({ project, health, onOpenDoc, onEdit }) {
+export default function ProjectCard({
+  project,
+  health,
+  onOpenDoc,
+  onEdit,
+  dragging,
+  onDragStart,
+  onDragOver,
+  onDragEnd,
+}) {
   const status = health?.status || "checking";
   const gh = project.github;
 
@@ -54,9 +71,24 @@ export default function ProjectCard({ project, health, onOpenDoc, onEdit }) {
   }
 
   return (
-    <article className="card">
+    <article
+      className={`card${PROJECT_TAGS[project.status] ? ` tag-${project.status}` : ""}${
+        dragging ? " dragging" : ""
+      }`}
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = "move";
+        onDragStart?.();
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        onDragOver?.();
+      }}
+      onDragEnd={onDragEnd}
+    >
       <div className="card-head">
         <div className="card-title">
+          <span className="drag-handle" title="Drag to reorder" aria-hidden="true">⠿</span>
           <h2>{project.name}</h2>
           <button className="edit-btn" onClick={onEdit} title="Edit project" aria-label="Edit project">
             ✎
@@ -104,12 +136,19 @@ export default function ProjectCard({ project, health, onOpenDoc, onEdit }) {
           href={`https://github.com/${project.repo}`}
           target="_blank"
           rel="noreferrer"
+          draggable={false}
         >
           <GitHubIcon />
           GitHub
         </a>
         {project.railwayUrl ? (
-          <a className="btn link" href={project.railwayUrl} target="_blank" rel="noreferrer">
+          <a
+            className="btn link"
+            href={project.railwayUrl}
+            target="_blank"
+            rel="noreferrer"
+            draggable={false}
+          >
             <RailwayIcon />
             Railway
           </a>
@@ -133,11 +172,18 @@ export default function ProjectCard({ project, health, onOpenDoc, onEdit }) {
             href={project.deployUrl}
             target="_blank"
             rel="noreferrer"
+            draggable={false}
           >
             🚀 Live
           </a>
         )}
       </div>
+
+      {PROJECT_TAGS[project.status] && (
+        <div className="card-tags">
+          <span className={`badge ${project.status}`}>{PROJECT_TAGS[project.status]}</span>
+        </div>
+      )}
 
       {project.hasLocalPath && macBridge.available() && (
         <div className="card-native">

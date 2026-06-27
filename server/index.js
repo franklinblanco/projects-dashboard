@@ -70,6 +70,13 @@ function slugify(s) {
   return String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
+// Lifecycle tag shown on the card. Empty string = no tag.
+const PROJECT_STATUSES = ["published", "development", "stale", "abandoned"];
+function normalizeStatus(v) {
+  const s = String(v ?? "").trim().toLowerCase();
+  return PROJECT_STATUSES.includes(s) ? s : "";
+}
+
 // Build a clean project object from a request body, merging onto an existing one.
 function normalizeProject(body, existing = {}) {
   const name = String(body.name || "").trim();
@@ -91,6 +98,9 @@ function normalizeProject(body, existing = {}) {
     localPath: String(body.localPath ?? existing.localPath ?? "").trim(),
     railwayUrl: String(body.railwayUrl ?? existing.railwayUrl ?? "").trim(),
     deployUrl: String(body.deployUrl ?? existing.deployUrl ?? "").trim(),
+    status: normalizeStatus(
+      body.status ?? existing.status ?? ((body.published ?? existing.published) ? "published" : "")
+    ),
     healthcheck: {
       url: String(hc.url ?? existing.healthcheck?.url ?? "").trim(),
       method: hc.method || existing.healthcheck?.method || "GET",
@@ -172,6 +182,36 @@ api.post("/projects/import", async (req, res) => {
     config.projects = Array.from(byId.values());
     await saveConfig(config);
     res.json({ ok: true, added, updated, total: config.projects.length, errors });
+  } catch (e) {
+    res.status(500).json({ error: String(e.message || e) });
+  }
+});
+
+// Reorder projects. Accepts { ids: [...] } in the desired display order. Any
+// existing project not listed in `ids` is kept and appended in its prior order.
+api.post("/projects/reorder", async (req, res) => {
+  try {
+    const ids = req.body?.ids;
+    if (!Array.isArray(ids)) {
+      return res.status(400).json({ error: "expected { ids: [...] }" });
+    }
+    const config = await loadConfig();
+    const byId = new Map(config.projects.map((p) => [p.id, p]));
+    const ordered = [];
+    const seen = new Set();
+    for (const id of ids) {
+      const p = byId.get(id);
+      if (p && !seen.has(id)) {
+        ordered.push(p);
+        seen.add(id);
+      }
+    }
+    for (const p of config.projects) {
+      if (!seen.has(p.id)) ordered.push(p);
+    }
+    config.projects = ordered;
+    await saveConfig(config);
+    res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: String(e.message || e) });
   }

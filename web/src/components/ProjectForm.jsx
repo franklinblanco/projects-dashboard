@@ -8,6 +8,7 @@ const EMPTY = {
   localPath: "",
   railwayUrl: "",
   deployUrl: "",
+  status: "",
   healthcheckUrl: "",
   expectStatus: 200,
   docs: [{ label: "README", path: "README.md" }],
@@ -32,6 +33,7 @@ export default function ProjectForm({ project, onClose, onSaved }) {
           localPath: p.localPath || "",
           railwayUrl: p.railwayUrl || "",
           deployUrl: p.deployUrl || "",
+          status: p.status || (p.published ? "published" : ""),
           healthcheckUrl: p.healthcheck?.url || "",
           expectStatus: p.healthcheck?.expectStatus || 200,
           docs: p.docs?.length ? p.docs.map((d) => ({ label: d.label, path: d.path })) : [],
@@ -69,6 +71,7 @@ export default function ProjectForm({ project, onClose, onSaved }) {
       localPath: form.localPath,
       railwayUrl: form.railwayUrl,
       deployUrl: form.deployUrl,
+      status: form.status,
       healthcheck: { url: form.healthcheckUrl, expectStatus: Number(form.expectStatus) || 200 },
       docs: form.docs.filter((d) => d.path),
     };
@@ -161,6 +164,17 @@ export default function ProjectForm({ project, onClose, onSaved }) {
                   />
                 </label>
               </div>
+
+              <label className="narrow-select">
+                Status <span className="muted">(tag shown on the card)</span>
+                <select value={form.status} onChange={(e) => set("status", e.target.value)}>
+                  <option value="">— None —</option>
+                  <option value="published">Published</option>
+                  <option value="development">Development</option>
+                  <option value="stale">Stale</option>
+                  <option value="abandoned">Abandoned</option>
+                </select>
+              </label>
 
               <div className="pform-docs">
                 <div className="pform-docs-head">

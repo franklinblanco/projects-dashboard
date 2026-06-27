@@ -106,6 +106,34 @@ body {
   transform: translateY(-2px);
   border-color: #34405c;
 }
+.card.tag-published {
+  border-color: rgba(52, 211, 153, 0.3);
+  background: linear-gradient(180deg, rgba(52, 211, 153, 0.07) 0%, #11141b 100%);
+}
+.card.tag-published:hover {
+  border-color: rgba(52, 211, 153, 0.55);
+}
+.card.tag-development {
+  border-color: rgba(109, 140, 255, 0.32);
+  background: linear-gradient(180deg, rgba(109, 140, 255, 0.07) 0%, #11141b 100%);
+}
+.card.tag-development:hover {
+  border-color: rgba(109, 140, 255, 0.6);
+}
+.card.tag-stale {
+  border-color: rgba(251, 191, 36, 0.3);
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.07) 0%, #11141b 100%);
+}
+.card.tag-stale:hover {
+  border-color: rgba(251, 191, 36, 0.55);
+}
+.card.tag-abandoned {
+  border-color: rgba(139, 147, 167, 0.28);
+  background: linear-gradient(180deg, rgba(139, 147, 167, 0.06) 0%, #0f1118 100%);
+}
+.card.tag-abandoned:hover {
+  border-color: rgba(139, 147, 167, 0.5);
+}
 .card-head {
   display: flex;
   align-items: center;
@@ -117,11 +145,16 @@ body {
   align-items: center;
   gap: 6px;
   min-width: 0;
+  flex: 1;
 }
 .card-head h2 {
   font-size: 17px;
   margin: 0;
   letter-spacing: -0.01em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .edit-btn {
   border: none;
@@ -131,6 +164,7 @@ body {
   font-size: 13px;
   padding: 2px 6px;
   border-radius: 6px;
+  flex-shrink: 0;
   opacity: 0;
   transition: opacity 0.12s ease, color 0.12s ease, background 0.12s ease;
 }
@@ -198,6 +232,7 @@ body {
   background: var(--bg-elev-2);
   border: 1px solid var(--border);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .status-led {
   width: 8px;
@@ -255,6 +290,68 @@ body {
 }
 .chip.warn {
   color: var(--degraded);
+}
+
+/* ---- Published badge ---- */
+.badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.badge.published {
+  color: var(--up);
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.4);
+}
+.badge.development {
+  color: var(--accent);
+  background: rgba(109, 140, 255, 0.12);
+  border: 1px solid rgba(109, 140, 255, 0.4);
+}
+.badge.stale {
+  color: var(--degraded);
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+.badge.abandoned {
+  color: var(--muted);
+  background: rgba(139, 147, 167, 0.12);
+  border: 1px solid rgba(139, 147, 167, 0.4);
+}
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+/* ---- Drag to reorder ---- */
+.drag-handle {
+  cursor: grab;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  border-radius: 6px;
+  opacity: 0;
+  flex-shrink: 0;
+  user-select: none;
+  transition: opacity 0.12s ease, color 0.12s ease;
+}
+.card:hover .drag-handle {
+  opacity: 1;
+}
+.drag-handle:hover {
+  color: var(--text);
+}
+.card.dragging {
+  opacity: 0.5;
+  border-color: var(--accent);
 }
 
 /* ---- Buttons / links ---- */
@@ -680,4 +777,21 @@ body {
 }
 .pform-actions .spacer {
   flex: 1;
+}
+.pform select {
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 9px 11px;
+  cursor: pointer;
+}
+.pform select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.pform label.narrow-select {
+  flex: 0 0 260px;
 }

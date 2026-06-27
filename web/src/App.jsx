@@ -13,7 +13,14 @@ export default function App() {
   const [doc, setDoc] = useState(null); // { project, doc }
   const [editing, setEditing] = useState(null); // null | { project } | { project: null }
   const [notice, setNotice] = useState(null);
+  const [draggingId, setDraggingId] = useState(null);
   const fileRef = useRef(null);
+  // Mirror of `data` so drag handlers read the freshest order without re-binding.
+  const dataRef = useRef(data);
+  const startOrderRef = useRef(null);
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
 
   const checkAuth = useCallback(async () => {
     try {
@@ -94,6 +101,39 @@ export default function App() {
     }
   }
 
+  function onDragStart(id) {
+    setDraggingId(id);
+    startOrderRef.current = (dataRef.current?.projects || []).map((p) => p.id).join();
+  }
+
+  // Live-reorder as the dragged card hovers over another one.
+  function onDragOverCard(overId) {
+    const from = draggingId;
+    if (!from || from === overId) return;
+    setData((d) => {
+      if (!d) return d;
+      const fromIdx = d.projects.findIndex((p) => p.id === from);
+      const toIdx = d.projects.findIndex((p) => p.id === overId);
+      if (fromIdx === -1 || toIdx === -1 || fromIdx === toIdx) return d;
+      const projects = d.projects.slice();
+      const [moved] = projects.splice(fromIdx, 1);
+      projects.splice(toIdx, 0, moved);
+      return { ...d, projects };
+    });
+  }
+
+  async function onDragEnd() {
+    setDraggingId(null);
+    const ids = (dataRef.current?.projects || []).map((p) => p.id);
+    if (ids.join() === startOrderRef.current) return; // order unchanged
+    try {
+      await api.reorderProjects(ids);
+    } catch (e) {
+      setError(String(e.message || e));
+      loadProjects(); // resync with the server's order on failure
+    }
+  }
+
   if (authState === "loading") {
     return <div className="center muted">Loading…</div>;
   }
@@ -164,6 +204,10 @@ export default function App() {
               health={health[p.id]}
               onOpenDoc={(d) => setDoc({ project: p, doc: d })}
               onEdit={() => setEditing({ project: p })}
+              dragging={draggingId === p.id}
+              onDragStart={() => onDragStart(p.id)}
+              onDragOver={() => onDragOverCard(p.id)}
+              onDragEnd={onDragEnd}
             />
           ))}
         </main>
